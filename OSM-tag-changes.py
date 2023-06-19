@@ -19,20 +19,25 @@ parser = argparse.ArgumentParser()
 
 # Add the command-line arguments
 parser.add_argument('--tags', type=str, default='highway=primary')
+parser.add_argument('--token', type=str, default='d8616b9f387e0904c6df338a54a435cce714cca8')
 parser.add_argument('--start_date', type=str, default=(datetime.today() - timedelta(days=10)).strftime('%Y-%m-%d'))
 parser.add_argument('--end_date', type=str, default=datetime.today().strftime('%Y-%m-%d'))
 parser.add_argument('--places', type=str, default='kathmandu')
-parser.add_argument('--save_file', type=str, default='changes.csv')
+parser.add_argument('--save_file', type=str, default=None)
 
 # Parse the command-line arguments
 args = parser.parse_args()
 
 # Access the provided arguments
 tags = args.tags
+token = args.token
 start_date = args.start_date
 end_date = args.end_date
 places = args.places.split(',') 
-file = args.save_file
+if args.save_file is not None:
+    file = args.save_file
+else:
+    file = f"changes{end_date}.csv"
 
 # Extract key and value from tags if provided
 if tags:
@@ -58,10 +63,11 @@ for place in places:
                       'params': 'page=1&page_size=500&date__gte={start_date}&date__lte={end_date}&geometry=%7B%22type%22%3A%22Polygon%22%2C%22coordinates%22%3A%5B%5B%5B85.352034%2C27.668049%5D%2C%5B85.418158%2C27.620213%5D%2C%5B85.453568%2C27.636361%5D%2C%5B85.463736%2C27.625603%5D%2C%5B85.492805%2C27.652438%5D%2C%5B85.503014%2C27.68949%5D%2C%5B85.521441%2C27.694738%5D%2C%5B85.524809%2C27.725472%5D%2C%5B85.421414%2C27.724067%5D%2C%5B85.352034%2C27.668049%5D%5D%5D%7D%2Cvalue%3A%7Btype%3APolygon%2Ccoordinates%3A%5B%5B%5B85.352034%2C27.668049%5D%2C%5B85.418158%2C27.620213%5D%2C%5B85.453568%2C27.636361%5D%2C%5B85.463736%2C27.625603%5D%2C%5B85.492805%2C27.652438%5D%2C%5B85.503014%2C27.68949%5D%2C%5B85.521441%2C27.694738%5D%2C%5B85.524809%2C27.725472%5D%2C%5B85.421414%2C27.724067%5D%2C%5B85.352034%2C27.668049%5D%5D%5D%7D'})
 
 #OSMcha token id
-headers = {"Authorization": "Token d8616b9f387e0904c6df338a54a435cce714cca8"}
+headers = {"Authorization": f"Token {token}"}
 
 #storing all the response in a single list
 osmcha_responses=[]
+print("fetching the osmcha responses .....")
 for area in areas:
     url = osmcha_base_url + "?" + area["params"].replace('{start_date}', start_date).replace('{end_date}', end_date)
     response = requests.get(url, headers=headers)
@@ -101,7 +107,6 @@ for item in data['features']:
   except:
     pass
 
-print("count: ", len(changes))
 #getting the required information from the features 
 openstreeturl="https://www.openstreetmap.org/{}/{}"
 
@@ -121,6 +126,7 @@ duplicate_changesets = {feature_id: changesets[feature_id] for feature_id in cha
 #merging all the changesets with duplicate feature_id to get a single row of features
 changeset_lists=[]
 result=[]
+print("gathering the required information .......")
 keys=list(duplicate_changesets.keys())
 for key,value in duplicate_changesets.items():
   changeset_lists=value
